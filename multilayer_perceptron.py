@@ -1,9 +1,6 @@
-from copy import deepcopy
-from itertools import product
-
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Tuple, Union
+from typing import Tuple, Union, Type
 
 
 class Node:
@@ -17,13 +14,13 @@ class Node:
             ), "Number of weights must be equal to number of inputs + 1"
             self.w = w
         else:
-            self.w = np.random.uniform(0, 1, n + 1)
+            self.w = np.random.uniform(-1, 1, n + 1)
 
     def activation(self, a: float) -> float:
-        return NotImplementedError
+        raise NotImplementedError
 
-    def d_activation(self, x: np.array):
-        return NotImplementedError
+    def d_activation(self, x: np.array) -> float:
+        raise NotImplementedError
 
     def __call__(self, x: Union[np.array, None] = None) -> float:
         return self.activation(self.w[1:] @ x + self.w[0])
@@ -68,8 +65,8 @@ class MultiLayerPerceptron:
         self,
         x_size: int,
         structure: Tuple[int],
-        node_type: type[Node] = NodeLogistic,
-        learning_rate: float = 0.01,
+        node_type: Type[Node] = NodeLogistic,
+        learning_rate: float = 0.1,
     ):
         """structure: the i'th int is the number of nodes in layer i"""
 
@@ -151,7 +148,7 @@ class MultiLayerPerceptron:
             for end in range(end_count):
                 ax.add_patch(
                     plt.Circle(
-                        [i + 1, end - 0.5 * (end_count - 1)],
+                        (i + 1, end - 0.5 * (end_count - 1)),
                         0.2,
                         facecolor="gray",
                         zorder=1,
@@ -167,37 +164,3 @@ class MultiLayerPerceptron:
                         f"w0 = {w0}\nz = {z}",
                         horizontalalignment="center",
                     )
-
-
-if __name__ == '__main__':
-    np.random.seed(1)
-    observations = 20
-    xs = (np.random.uniform(0, 0.2, observations * 2) + np.random.choice([0, 0.8], observations * 2)).reshape(
-        [observations, 2])
-    ys = (np.sign(xs - 0.5).prod(axis=1) + 1) / 2
-
-    mlp = MultiLayerPerceptron(2, [3, 3, 1], node_type=NodeLinear)
-
-    errors = []
-    intermediate_mlps = []
-
-    for _ in range(500):
-        intermediate_mlps.append(deepcopy(mlp))
-        for i in range(len(xs)):
-            mlp.backward(xs[i], ys[i])
-        errors.append(sum([mlp.error(xs[i], ys[i]) for i in range(len(xs))]))
-
-    plt.plot(errors)
-    plt.ylim(0, max(errors) * 1.1)
-    plt.show()
-
-    fig, ax = plt.subplots(figsize=(10, 10))
-
-    xs_test = np.array(list(product(np.linspace(0, 1, 50), np.linspace(0, 1, 50))))
-    ys_test = [mlp(x) for x in xs_test]
-
-    ax.scatter(xs_test[:, 0], xs_test[:, 1], c=ys_test, cmap='cool', marker='+', s=110, linewidths=1)
-
-    ax.scatter(x=xs[:, 0], y=xs[:, 1], c=ys, cmap='cool')
-
-    plt.show()
